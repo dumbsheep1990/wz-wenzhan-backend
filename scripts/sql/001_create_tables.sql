@@ -111,6 +111,62 @@ CREATE TABLE IF NOT EXISTS `recycle_items` (
   FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='回收站表';
 
+-- 导航分类表
+CREATE TABLE IF NOT EXISTS `categories` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL COMMENT '分类名称',
+  `code` varchar(50) NOT NULL COMMENT '分类唯一代码',
+  `parent_id` bigint unsigned DEFAULT NULL COMMENT '父分类ID',
+  `level` int NOT NULL DEFAULT '1' COMMENT '分类层级',
+  `icon` varchar(255) DEFAULT '' COMMENT '图标',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `is_visible` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否可见',
+  `description` varchar(255) DEFAULT '' COMMENT '描述',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_code` (`code`),
+  KEY `idx_parent_id` (`parent_id`),
+  KEY `idx_sort_order` (`sort_order`),
+  KEY `idx_is_visible` (`is_visible`),
+  KEY `idx_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='导航分类表';
+
+-- 文档分类关联表
+CREATE TABLE IF NOT EXISTS `document_categories` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `document_id` bigint unsigned NOT NULL COMMENT '文档ID',
+  `category_id` bigint unsigned NOT NULL COMMENT '分类ID',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_doc_cat` (`document_id`, `category_id`),
+  KEY `idx_document_id` (`document_id`),
+  KEY `idx_category_id` (`category_id`),
+  FOREIGN KEY (`document_id`) REFERENCES `documents` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档分类关联表';
+
+-- 文件表
+CREATE TABLE IF NOT EXISTS `files` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `filename` varchar(255) NOT NULL COMMENT '文件名',
+  `path` varchar(500) NOT NULL COMMENT '存储路径',
+  `size` bigint NOT NULL COMMENT '文件大小（字节）',
+  `mime_type` varchar(100) NOT NULL COMMENT '文件类型',
+  `user_id` bigint unsigned NOT NULL COMMENT '用户ID',
+  `folder_id` bigint unsigned DEFAULT NULL COMMENT '文件夹ID',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_folder_id` (`folder_id`),
+  KEY `idx_deleted_at` (`deleted_at`),
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`folder_id`) REFERENCES `folders` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件表';
+
 -- 插入测试数据（可选）
 INSERT INTO `users` (`username`, `email`, `password`, `nickname`, `status`) VALUES
 ('admin', 'admin@wenzhan.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '管理员', 1),

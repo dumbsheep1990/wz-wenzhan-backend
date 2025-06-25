@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"path/filepath"
 	"wz-wenzhan-backend/internal/config"
 	"wz-wenzhan-backend/internal/handler"
 	"wz-wenzhan-backend/internal/middleware"
@@ -15,6 +16,12 @@ import (
 func main() {
 	// 初始化配置
 	cfg := config.Load()
+
+	// 获取项目根目录
+	basePath, err := filepath.Abs(".")
+	if err != nil {
+		log.Fatal("Failed to get base path:", err)
+	}
 
 	// 初始化数据库
 	db := config.InitDB(cfg)
@@ -52,9 +59,13 @@ func main() {
 	workspaceHandler := handler.NewWorkspaceHandler(workspaceService)
 	activityHandler := handler.NewActivityHandler(activityService)
 	recycleHandler := handler.NewRecycleHandler(recycleService)
+	swaggerHandler := handler.NewSwaggerHandler(basePath)
 
 	// 初始化Gin引擎
 	r := gin.Default()
+
+	// 加载HTML模板
+	r.LoadHTMLGlob(filepath.Join(basePath, "internal/templates/*.html"))
 
 	// 设置CORS
 	r.Use(cors.New(cors.Config{
@@ -74,7 +85,7 @@ func main() {
 
 	// 注册路由
 	setupRoutes(r, userHandler, documentHandler, folderHandler, fileHandler, 
-		searchHandler, workspaceHandler, activityHandler, recycleHandler)
+		searchHandler, workspaceHandler, activityHandler, recycleHandler, swaggerHandler)
 
 	// 启动服务器
 	log.Printf("Server starting on port %s", cfg.Server.Port)
@@ -91,7 +102,8 @@ func setupRoutes(r *gin.Engine,
 	searchHandler *handler.SearchHandler,
 	workspaceHandler *handler.WorkspaceHandler,
 	activityHandler *handler.ActivityHandler,
-	recycleHandler *handler.RecycleHandler) {
+	recycleHandler *handler.RecycleHandler,
+	swaggerHandler *handler.SwaggerHandler) {
 
 	api := r.Group("/api/v1")
 
@@ -171,5 +183,13 @@ func setupRoutes(r *gin.Engine,
 		recycle.POST("/:id/restore", recycleHandler.Restore)
 		recycle.DELETE("/:id", recycleHandler.DeletePermanently)
 		recycle.DELETE("/batch", recycleHandler.DeleteBatch)
+	}
+	
+	// API文档路由
+	docs := r.Group("/api/docs")
+	{
+		docs.GET("", swaggerHandler.ServeSwaggerUI)
+		docs.GET("/swagger.json", swaggerHandler.GetSwaggerJSON)
+		docs.GET("/swagger.yaml", swaggerHandler.GetSwaggerYAML)
 	}
 }
